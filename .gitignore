@@ -1,0 +1,9 @@
+# vs code
+.DS_Store
+
+# jetbrain
+.idea
+
+# node.js
+node_modules
+package-lock.json
