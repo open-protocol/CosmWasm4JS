@@ -11,7 +11,7 @@
   },
   "type": "module",
   "keywords": [],
-  "author": "ian <ian.jungyong.um@gmail.com>",
+  "author": "code0xff <ian.jungyong.um@gmail.com>",
   "license": "MIT",
   "jest": {
     "transform": {
