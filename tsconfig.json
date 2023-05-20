@@ -11,13 +11,15 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "declaration": true
+    "declaration": true,
+    "noImplicitReturns": true
   },
   "exclude": [
     "node_modules",
     "**/*.spec.ts"
   ],
   "include": [
-    "src/*"
+    "src/*",
+    "src/**/*" 
   ]
 }
