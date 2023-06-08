@@ -8,7 +8,9 @@ export function readRegion(memory, ptr, maxLength) {
 }
 export function writeRegion(memory, ptr, data) {
     const region = getRegion(memory, ptr);
-    new Uint8Array(memory.buffer).subarray(region.offset, region.offset + data.length).set(data);
+    new Uint8Array(memory.buffer)
+        .subarray(region.offset, region.offset + data.length)
+        .set(data);
     region.length = data.length;
     setRegion(memory, ptr, region);
 }
@@ -27,6 +29,8 @@ export function setRegion(memory, ptr, data) {
     capacity.writeUInt32LE(data.capacity, 0);
     const length = Buffer.allocUnsafe(4);
     length.writeUInt32LE(data.length, 0);
-    new Uint8Array(memory.buffer).subarray(ptr, ptr + 12).set(Buffer.concat([offset, capacity, length]));
+    new Uint8Array(memory.buffer)
+        .subarray(ptr, ptr + 12)
+        .set(Buffer.concat([offset, capacity, length]));
 }
 //# sourceMappingURL=memory.js.map

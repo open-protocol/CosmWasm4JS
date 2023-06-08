@@ -32,8 +32,8 @@ const MESSAGE_HASH_MAX_LEN = 32;
 
 export function doDbRead(instance: Instance, keyPtr: number): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
-  const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY).toString("base64");
-  const value = instance.store.get(key);
+  const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
+  const value = instance.backend.storage.get(key);
   if (!value) {
     return 0;
   }
@@ -42,15 +42,15 @@ export function doDbRead(instance: Instance, keyPtr: number): number {
 
 export function doDbWrite(instance: Instance, keyPtr: number, valuePtr: number): void {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
-  const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY).toString("base64");
+  const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
   const value = readRegion(memory, valuePtr, MAX_LENGTH_DB_VALUE);
-  instance.store.set(key, value);
+  instance.backend.storage.set(key, value);
 }
 
 export function doDbRemove(instance: Instance, keyPtr: number): void {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
-  const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY).toString("base64");
-  instance.store.delete(key);
+  const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
+  instance.backend.storage.remove(key);
 }
 
 export function doAddrValidate(instance: Instance, sourcePtr: number): number {
@@ -74,7 +74,7 @@ export function doAddrCanonicalize(instance: Instance, sourcePtr: number, destin
   if (sourceData.length === 0) {
     return writeToContract(instance, Buffer.from("Input is empty", "utf8"));
   }
-  const canonical = instance.api.canonicalAddress(sourceData.toString("utf8"));
+  const canonical = instance.backend.api.canonicalAddress(sourceData.toString("utf8"));
   writeRegion(memory, destinationPtr, canonical);
   return 0;
 }
@@ -82,7 +82,7 @@ export function doAddrCanonicalize(instance: Instance, sourcePtr: number, destin
 export function doAddrHumanize(instance: Instance, sourcePtr: number, destinationPtr: number): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const canonical = readRegion(memory, sourcePtr, MAX_LENGTH_CANONICAL_ADDRESS);
-  const human = instance.api.humanAddress(canonical);
+  const human = instance.backend.api.humanAddress(canonical);
   writeRegion(memory, destinationPtr, Buffer.from(human, "utf8"));
   return 0;
 }
@@ -185,7 +185,7 @@ function writeToContract(instance: Instance, input: Buffer): number {
 export function doQueryChain(instance: Instance, requestPtr: number): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const request = readRegion(memory, requestPtr, MAX_LENGTH_QUERY_CHAIN_REQUEST);
-  const result = instance.querier.queryRaw(request);
+  const result = instance.backend.querier.queryRaw(request);
   return writeToContract(instance, result);
 }
 

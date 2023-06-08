@@ -1,17 +1,15 @@
-import { doAbort, doAddrCanonicalize, doAddrHumanize, doAddrValidate, doDbNext, doDbRead, doDbRemove, doDbScan, doDbWrite, doDebug, doEd25519BatchVerify, doEd25519Verify, doQueryChain, doSecp256k1RecoverPubkey, doSecp256k1Verify } from "./imports.js";
+import { doAbort, doAddrCanonicalize, doAddrHumanize, doAddrValidate, doDbNext, doDbRead, doDbRemove, doDbScan, doDbWrite, doDebug, doEd25519BatchVerify, doEd25519Verify, doQueryChain, doSecp256k1RecoverPubkey, doSecp256k1Verify, } from "./imports.js";
 export class Instance {
-    constructor(instance, store, api, querier) {
+    constructor(instance, backend) {
         this.inner = instance;
-        this.store = store;
-        this.api = api;
-        this.querier = querier;
+        this.backend = backend;
     }
-    static async fromCode(code, store, api, querier) {
+    static async fromCode(code, backend) {
         const module = await WebAssembly.compile(code);
         const memory = new WebAssembly.Memory({ initial: 100 });
-        return this.fromModule(module, memory, store, api, querier);
+        return this.fromModule(module, memory, backend);
     }
-    static fromModule(module, memory, store, api, querier) {
+    static fromModule(module, memory, backend) {
         const instance = new Instance(new WebAssembly.Instance(module, {
             env: {
                 memory,
@@ -60,8 +58,8 @@ export class Instance {
                 db_next: (iteratorId) => {
                     return doDbNext(instance, iteratorId);
                 },
-            }
-        }), store, api, querier);
+            },
+        }), backend);
         return instance;
     }
 }
