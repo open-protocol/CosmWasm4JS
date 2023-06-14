@@ -13,10 +13,15 @@ export type {
   TransactionInfo,
 } from "./std/index.js";
 export {
+  Backend,
   BackendApi,
   Instance,
   Querier,
+  Storage,
   callQuery,
+  callExecute,
+  callInstantiate,
   readRegion,
   writeRegion,
+  decodeSections
 } from "./vm/index.js";

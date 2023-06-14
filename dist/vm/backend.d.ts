@@ -1,4 +1,11 @@
 /// <reference types="node" />
+export declare class GasInfo {
+    cost: bigint;
+    externallyUsed: bigint;
+    constructor(cost: bigint, externallyUsed: bigint);
+    static withCost(amount: bigint): GasInfo;
+    static withExternallyUsed(amount: bigint): GasInfo;
+}
 export declare class Backend {
     api: BackendApi;
     storage: Storage;

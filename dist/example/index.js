@@ -1,6 +1,4 @@
-import { Backend } from "../vm/backend.js";
-import { callExecute, callInstantiate } from "../vm/calls.js";
-import { Instance, callQuery, } from "../vm/index.js";
+import { Backend, Instance, callQuery, callExecute, callInstantiate, } from "../vm/index.js";
 import fs from "fs";
 class MockBackendApi {
     canonicalAddress(human) {
@@ -49,14 +47,14 @@ class MockStorage {
             sender: "W7HxkpaKwXif1gwj46gbNba7xKx9s8xUahh-Q_iQTdA",
             funds: [
                 {
-                    denom: "opp",
+                    denom: "opc",
                     amount: 0n.toString(),
                 },
             ],
         };
         const inistantiateMsg = {
-            name: "opencoin",
-            symbol: "opc",
+            name: "opentoken",
+            symbol: "opt",
             decimals: 9,
             initial_balances: [
                 {

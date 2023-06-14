@@ -1,3 +1,3 @@
 export { CommunicationError, VmError, } from "./errors/index.js";
-export { Instance, callQuery, readRegion, writeRegion, } from "./vm/index.js";
+export { Backend, Instance, callQuery, callExecute, callInstantiate, readRegion, writeRegion, decodeSections } from "./vm/index.js";
 //# sourceMappingURL=index.js.map

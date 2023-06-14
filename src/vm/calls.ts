@@ -1,7 +1,7 @@
 import {
   Env,
   MessageInfo
-} from "../std/types.js";
+} from "../std/index.js";
 import { Instance } from "./instance.js";
 import {
   readRegion,
