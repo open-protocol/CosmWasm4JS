@@ -1,13 +1,13 @@
 import { Env, MessageInfo } from "../std/index.js";
 import {
+  callExecute,
+  callInstantiate,
+  callQuery,
   Backend,
   BackendApi,
   Instance,
   Querier,
   Storage,
-  callQuery,
-  callExecute,
-  callInstantiate,
   InstanceOption,
 } from "../vm/index.js";
 import fs from "fs";

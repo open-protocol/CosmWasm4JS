@@ -225,7 +225,7 @@ export function doEd25519BatchVerify<
   const publicKeysLen = publicKeys.length;
 
   if (messagesLen === signaturesLen && signaturesLen === publicKeysLen) {
-    // empty
+    //
   } else if (messagesLen === 1 && signaturesLen === publicKeysLen) {
     messages = new Array(signaturesLen).fill(messages[0]);
   } else if (publicKeysLen === 1 && messagesLen === signaturesLen) {

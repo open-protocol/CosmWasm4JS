@@ -18,7 +18,7 @@ export function callInstantiate<
   info: MessageInfo,
   msg: Buffer
 ): Buffer {
-  return callInstantiateRaw(
+  return callInstantiateRaw<A, S, Q>(
     instance,
     Buffer.from(JSON.stringify(env), "utf8"),
     Buffer.from(JSON.stringify(info), "utf8"),
