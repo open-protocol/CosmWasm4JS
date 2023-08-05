@@ -4,10 +4,16 @@ export class GasInfo {
         this.externallyUsed = externallyUsed;
     }
     static withCost(amount) {
-        return new GasInfo(amount, 0n);
+        return {
+            cost: amount,
+            externallyUsed: 0n,
+        };
     }
     static withExternallyUsed(amount) {
-        return new GasInfo(0n, amount);
+        return {
+            cost: 0n,
+            externallyUsed: amount,
+        };
     }
 }
 export class Backend {

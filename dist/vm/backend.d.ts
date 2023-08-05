@@ -6,11 +6,11 @@ export declare class GasInfo {
     static withCost(amount: bigint): GasInfo;
     static withExternallyUsed(amount: bigint): GasInfo;
 }
-export declare class Backend {
-    api: BackendApi;
-    storage: Storage;
-    querier: Querier;
-    constructor(api: BackendApi, storage: Storage, querier: Querier);
+export declare class Backend<A extends BackendApi, S extends Storage, Q extends Querier> {
+    api: A;
+    storage: S;
+    querier: Q;
+    constructor(api: A, storage: S, querier: Q);
 }
 export interface Storage {
     get: (key: Buffer) => Buffer;

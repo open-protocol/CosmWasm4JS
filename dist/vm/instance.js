@@ -1,15 +1,24 @@
+import { ContextData, GasConfig } from "./environment.js";
 import { doAbort, doAddrCanonicalize, doAddrHumanize, doAddrValidate, doDbNext, doDbRead, doDbRemove, doDbScan, doDbWrite, doDebug, doEd25519BatchVerify, doEd25519Verify, doQueryChain, doSecp256k1RecoverPubkey, doSecp256k1Verify, } from "./imports.js";
 export class Instance {
-    constructor(instance, backend) {
+    constructor(instance, api, gasLimit) {
         this.inner = instance;
-        this.backend = backend;
+        this.env = {
+            memory: instance.exports.memory,
+            api,
+            gasConfig: new GasConfig(),
+            data: new ContextData(gasLimit),
+        };
     }
-    static async fromCode(code, backend) {
+    static async fromCode(code, backend, options, memoryLimit) {
         const module = await WebAssembly.compile(code);
-        const memory = new WebAssembly.Memory({ initial: 100 });
-        return this.fromModule(module, memory, backend);
+        const memory = new WebAssembly.Memory({
+            initial: 100,
+            maximum: memoryLimit,
+        });
+        return this.fromModule(module, memory, backend, options.gasLimit, options.printDebug);
     }
-    static fromModule(module, memory, backend) {
+    static fromModule(module, memory, backend, gasLimit, printDebug) {
         const instance = new Instance(new WebAssembly.Instance(module, {
             env: {
                 memory,
@@ -44,7 +53,9 @@ export class Instance {
                     return doEd25519BatchVerify(instance, messagePtr, signaturePtr, publicKeysPtr);
                 },
                 debug: (messagePtr) => {
-                    doDebug(instance, messagePtr);
+                    if (printDebug) {
+                        doDebug(instance, messagePtr);
+                    }
                 },
                 abort: (messagePtr) => {
                     doAbort(instance, messagePtr);
@@ -59,7 +70,9 @@ export class Instance {
                     return doDbNext(instance, iteratorId);
                 },
             },
-        }), backend);
+        }), backend.api, gasLimit);
+        instance.env.data.storage = backend.storage;
+        instance.env.data.querier = backend.querier;
         return instance;
     }
 }

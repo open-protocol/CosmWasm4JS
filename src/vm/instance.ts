@@ -1,4 +1,5 @@
-import { Backend } from "./backend.js";
+import { Backend, BackendApi, Storage, Querier } from "./backend.js";
+import { ContextData, Environment, GasConfig } from "./environment.js";
 import {
   doAbort,
   doAddrCanonicalize,
@@ -17,30 +18,61 @@ import {
   doSecp256k1Verify,
 } from "./imports.js";
 
-export class Instance {
+export interface InstanceOption {
+  gasLimit: bigint;
+  printDebug: boolean;
+}
+
+export class Instance<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+> {
   public inner: WebAssembly.Instance;
-  public backend: Backend;
+  public env: Environment<A, S, Q>;
 
-  constructor(instance: WebAssembly.Instance, backend: Backend) {
+  constructor(instance: WebAssembly.Instance, api: A, gasLimit: bigint) {
     this.inner = instance;
-    this.backend = backend;
+    this.env = {
+      memory: instance.exports.memory as WebAssembly.Memory,
+      api,
+      gasConfig: new GasConfig(),
+      data: new ContextData(gasLimit),
+    };
   }
 
-  public static async fromCode(
+  public static async fromCode<
+    A extends BackendApi,
+    S extends Storage,
+    Q extends Querier
+  >(
     code: Buffer,
-    backend: Backend
-  ): Promise<Instance> {
+    backend: Backend<A, S, Q>,
+    options: InstanceOption,
+    memoryLimit: number
+  ): Promise<Instance<A, S, Q>> {
     const module = await WebAssembly.compile(code);
-    const memory = new WebAssembly.Memory({ initial: 100 });
-    return this.fromModule(module, memory, backend);
+    const memory = new WebAssembly.Memory({
+      initial: 100,
+      maximum: memoryLimit,
+    });
+    return this.fromModule(
+      module,
+      memory,
+      backend,
+      options.gasLimit,
+      options.printDebug
+    );
   }
 
-  static fromModule(
+  static fromModule<A extends BackendApi, S extends Storage, Q extends Querier>(
     module: WebAssembly.Module,
     memory: WebAssembly.Memory,
-    backend: Backend
-  ): Instance {
-    const instance = new Instance(
+    backend: Backend<A, S, Q>,
+    gasLimit: bigint,
+    printDebug: boolean
+  ): Instance<A, S, Q> {
+    const instance = new Instance<A, S, Q>(
       new WebAssembly.Instance(module, {
         env: {
           memory,
@@ -117,7 +149,9 @@ export class Instance {
             );
           },
           debug: (messagePtr: number): void => {
-            doDebug(instance, messagePtr);
+            if (printDebug) {
+              doDebug(instance, messagePtr);
+            }
           },
           abort: (messagePtr: number) => {
             doAbort(instance, messagePtr);
@@ -137,8 +171,13 @@ export class Instance {
           },
         },
       }),
-      backend
+      backend.api,
+      gasLimit
     );
+
+    instance.env.data.storage = backend.storage;
+    instance.env.data.querier = backend.querier;
+
     return instance;
   }
 }

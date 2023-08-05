@@ -18,20 +18,25 @@ class MockStorage {
         this.data = new Map();
     }
     get(key) {
-        return this.data.get(key.toString("base64"));
+        return this.data.get(key.toString("base64url"));
     }
     set(key, value) {
-        this.data.set(key.toString("base64"), value);
+        this.data.set(key.toString("base64url"), value);
     }
     remove(key) {
-        this.data.delete(key.toString("base64"));
+        this.data.delete(key.toString("base64url"));
     }
 }
 (async () => {
     try {
         const code = fs.readFileSync("./contracts/cw20.wasm");
         const backend = new Backend(new MockBackendApi(), new MockStorage(), new MockQuerier());
-        const instance = await Instance.fromCode(code, backend);
+        const options = {
+            gasLimit: 1000000000000n,
+            printDebug: true,
+        };
+        const memoryLimit = 16384;
+        const instance = await Instance.fromCode(code, backend, options, memoryLimit);
         const env = {
             block: {
                 height: 1,
@@ -75,7 +80,7 @@ class MockStorage {
         };
         res = callQuery(instance, env, Buffer.from(JSON.stringify(queryMsg), "utf8"));
         resJson = JSON.parse(res.toString("utf8"));
-        console.log(Buffer.from(resJson["ok"], "base64").toString("utf8"));
+        console.log(Buffer.from(resJson["ok"], "base64url").toString("utf8"));
         const executeMsg = {
             transfer: {
                 recipient: "gBdRgmpzvixp2Nnf76LLTCrSYpuJfGp3TTGm8MaxSxo",
@@ -92,7 +97,7 @@ class MockStorage {
         };
         res = callQuery(instance, env, Buffer.from(JSON.stringify(queryMsg), "utf8"));
         resJson = JSON.parse(res.toString("utf8"));
-        console.log(Buffer.from(resJson["ok"], "base64").toString("utf8"));
+        console.log(Buffer.from(resJson["ok"], "base64url").toString("utf8"));
         queryMsg = {
             balance: {
                 address: "gBdRgmpzvixp2Nnf76LLTCrSYpuJfGp3TTGm8MaxSxo",
@@ -100,7 +105,7 @@ class MockStorage {
         };
         res = callQuery(instance, env, Buffer.from(JSON.stringify(queryMsg), "utf8"));
         resJson = JSON.parse(res.toString("utf8"));
-        console.log(Buffer.from(resJson["ok"], "base64").toString("utf8"));
+        console.log(Buffer.from(resJson["ok"], "base64url").toString("utf8"));
     }
     catch (e) {
         console.error({ e });

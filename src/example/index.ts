@@ -8,6 +8,7 @@ import {
   callQuery,
   callExecute,
   callInstantiate,
+  InstanceOption,
 } from "../vm/index.js";
 import fs from "fs";
 
@@ -35,15 +36,15 @@ class MockStorage implements Storage {
   }
 
   public get(key: Buffer): Buffer {
-    return this.data.get(key.toString("base64"));
+    return this.data.get(key.toString("base64url"));
   }
 
   public set(key: Buffer, value: Buffer): void {
-    this.data.set(key.toString("base64"), value);
+    this.data.set(key.toString("base64url"), value);
   }
 
   public remove(key: Buffer): void {
-    this.data.delete(key.toString("base64"));
+    this.data.delete(key.toString("base64url"));
   }
 }
 
@@ -55,7 +56,17 @@ class MockStorage implements Storage {
       new MockStorage(),
       new MockQuerier()
     );
-    const instance = await Instance.fromCode(code, backend);
+    const options: InstanceOption = {
+      gasLimit: 1_000_000_000_000n,
+      printDebug: true,
+    };
+    const memoryLimit = 16384;
+    const instance = await Instance.fromCode(
+      code,
+      backend,
+      options,
+      memoryLimit
+    );
 
     const env: Env = {
       block: {
@@ -111,7 +122,7 @@ class MockStorage implements Storage {
       Buffer.from(JSON.stringify(queryMsg), "utf8")
     );
     resJson = JSON.parse(res.toString("utf8"));
-    console.log(Buffer.from(resJson["ok"], "base64").toString("utf8"));
+    console.log(Buffer.from(resJson["ok"], "base64url").toString("utf8"));
 
     const executeMsg = {
       transfer: {
@@ -139,7 +150,7 @@ class MockStorage implements Storage {
       Buffer.from(JSON.stringify(queryMsg), "utf8")
     );
     resJson = JSON.parse(res.toString("utf8"));
-    console.log(Buffer.from(resJson["ok"], "base64").toString("utf8"));
+    console.log(Buffer.from(resJson["ok"], "base64url").toString("utf8"));
 
     queryMsg = {
       balance: {
@@ -152,8 +163,8 @@ class MockStorage implements Storage {
       Buffer.from(JSON.stringify(queryMsg), "utf8")
     );
     resJson = JSON.parse(res.toString("utf8"));
-    console.log(Buffer.from(resJson["ok"], "base64").toString("utf8"));
-  } catch (e: any) {
+    console.log(Buffer.from(resJson["ok"], "base64url").toString("utf8"));
+  } catch (e: unknown) {
     console.error({ e });
   }
 })();

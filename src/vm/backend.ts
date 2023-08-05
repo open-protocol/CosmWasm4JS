@@ -22,12 +22,16 @@ export class GasInfo {
   }
 }
 
-export class Backend {
-  public api: BackendApi;
-  public storage: Storage;
-  public querier: Querier;
+export class Backend<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+> {
+  public api: A;
+  public storage: S;
+  public querier: Q;
 
-  constructor(api: BackendApi, storage: Storage, querier: Querier) {
+  constructor(api: A, storage: S, querier: Q) {
     this.api = api;
     this.storage = storage;
     this.querier = querier;

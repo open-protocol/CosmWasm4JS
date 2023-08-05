@@ -22,13 +22,17 @@ export class GasState {
   }
 }
 
-export class Environment {
+export class Environment<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+> {
   public memory: WebAssembly.Memory | null | undefined;
-  public api: BackendApi;
+  public api: A;
   public gasConfig: GasConfig;
-  data: ContextData;
+  data: ContextData<S, Q>;
 
-  constructor(api: BackendApi, gasLimit: bigint) {
+  constructor(api: A, gasLimit: bigint) {
     this.memory = null;
     this.api = api;
     this.gasConfig = new GasConfig();
@@ -36,12 +40,12 @@ export class Environment {
   }
 }
 
-export class ContextData {
+export class ContextData<S extends Storage, Q extends Querier> {
   gasState: GasState;
-  storage: Storage | null | undefined;
+  storage: S | null | undefined;
   storageReadonly: boolean;
   callDepth: number;
-  qurier: Querier | null | undefined;
+  querier: Q | null | undefined;
   instance: WebAssembly.Instance | null | undefined;
 
   constructor(gasLimit: bigint) {
@@ -49,7 +53,7 @@ export class ContextData {
     this.storage = null;
     this.storageReadonly = true;
     this.callDepth = 0;
-    this.qurier = null;
+    this.querier = null;
     this.instance = null;
   }
 }
