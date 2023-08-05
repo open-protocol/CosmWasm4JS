@@ -1,4 +1,4 @@
-import { BackendApi, Storage, Querier } from "./backend";
+import { BackendApi, Storage, Querier } from "./backend.js";
 
 export class GasConfig {
   GAS_PER_US = 1000_000_000n;
