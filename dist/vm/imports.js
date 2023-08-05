@@ -23,7 +23,7 @@ const MESSAGE_HASH_MAX_LEN = 32;
 export function doDbRead(instance, keyPtr) {
     const memory = instance.inner.exports.memory;
     const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
-    const value = instance.backend.storage.get(key);
+    const value = instance.env.data.storage.get(key);
     if (!value) {
         return 0;
     }
@@ -33,12 +33,12 @@ export function doDbWrite(instance, keyPtr, valuePtr) {
     const memory = instance.inner.exports.memory;
     const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
     const value = readRegion(memory, valuePtr, MAX_LENGTH_DB_VALUE);
-    instance.backend.storage.set(key, value);
+    instance.env.data.storage.set(key, value);
 }
 export function doDbRemove(instance, keyPtr) {
     const memory = instance.inner.exports.memory;
     const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
-    instance.backend.storage.remove(key);
+    instance.env.data.storage.remove(key);
 }
 export function doAddrValidate(instance, sourcePtr) {
     const memory = instance.inner.exports.memory;
@@ -60,14 +60,14 @@ export function doAddrCanonicalize(instance, sourcePtr, destinationPtr) {
     if (sourceData.length === 0) {
         return writeToContract(instance, Buffer.from("Input is empty", "utf8"));
     }
-    const canonical = instance.backend.api.canonicalAddress(sourceData.toString("utf8"));
+    const canonical = instance.env.api.canonicalAddress(sourceData.toString("utf8"));
     writeRegion(memory, destinationPtr, canonical);
     return 0;
 }
 export function doAddrHumanize(instance, sourcePtr, destinationPtr) {
     const memory = instance.inner.exports.memory;
     const canonical = readRegion(memory, sourcePtr, MAX_LENGTH_CANONICAL_ADDRESS);
-    const human = instance.backend.api.humanAddress(canonical);
+    const human = instance.env.api.humanAddress(canonical);
     writeRegion(memory, destinationPtr, Buffer.from(human, "utf8"));
     return 0;
 }
@@ -113,6 +113,7 @@ export function doEd25519BatchVerify(instance, messagesPtr, signaturesPtr, publi
     const signaturesLen = signatures.length;
     const publicKeysLen = publicKeys.length;
     if (messagesLen === signaturesLen && signaturesLen === publicKeysLen) {
+        //
     }
     else if (messagesLen === 1 && signaturesLen === publicKeysLen) {
         messages = new Array(signaturesLen).fill(messages[0]);
@@ -123,7 +124,8 @@ export function doEd25519BatchVerify(instance, messagesPtr, signaturesPtr, publi
     else {
         return ED25519_VERIFY_CODE_INVALID;
     }
-    if (messages.length !== signaturesLen || messages.length !== publicKeys.length) {
+    if (messages.length !== signaturesLen ||
+        messages.length !== publicKeys.length) {
         return ED25519_VERIFY_CODE_INVALID;
     }
     for (let i = 0; i < messages.length; i++) {
@@ -157,7 +159,7 @@ function writeToContract(instance, input) {
 export function doQueryChain(instance, requestPtr) {
     const memory = instance.inner.exports.memory;
     const request = readRegion(memory, requestPtr, MAX_LENGTH_QUERY_CHAIN_REQUEST);
-    const result = instance.backend.querier.queryRaw(request);
+    const result = instance.env.data.querier.queryRaw(request);
     return writeToContract(instance, result);
 }
 export function doDbScan(instance, startPtr, endPtr, order) {

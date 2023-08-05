@@ -1,15 +1,10 @@
-import {
-  CommunicationError,
-  VmError
-} from "../errors/index.js";
-import {
-  readRegion,
-  writeRegion
-} from "./memory.js";
+import { CommunicationError, VmError } from "../errors/index.js";
+import { readRegion, writeRegion } from "./memory.js";
 import * as secp from "@noble/secp256k1";
 import * as ed from "@noble/ed25519";
 import { Instance } from "./instance.js";
 import { decodeSections } from "./sections.js";
+import { BackendApi, Storage, Querier } from "./backend.js";
 
 const KI = 1024;
 const MI = 1024 * 1024;
@@ -30,30 +25,46 @@ const ECDSA_UNCOMPRESSED_PUBKEY_LEN = 65;
 const ECDSA_PUBKEY_MAX_LEN = ECDSA_UNCOMPRESSED_PUBKEY_LEN;
 const MESSAGE_HASH_MAX_LEN = 32;
 
-export function doDbRead(instance: Instance, keyPtr: number): number {
+export function doDbRead<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, keyPtr: number): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
-  const value = instance.backend.storage.get(key);
+  const value = instance.env.data.storage.get(key);
   if (!value) {
     return 0;
   }
   return writeToContract(instance, value);
 }
 
-export function doDbWrite(instance: Instance, keyPtr: number, valuePtr: number): void {
+export function doDbWrite<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, keyPtr: number, valuePtr: number): void {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
   const value = readRegion(memory, valuePtr, MAX_LENGTH_DB_VALUE);
-  instance.backend.storage.set(key, value);
+  instance.env.data.storage.set(key, value);
 }
 
-export function doDbRemove(instance: Instance, keyPtr: number): void {
+export function doDbRemove<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, keyPtr: number): void {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const key = readRegion(memory, keyPtr, MAX_LENGTH_DB_KEY);
-  instance.backend.storage.remove(key);
+  instance.env.data.storage.remove(key);
 }
 
-export function doAddrValidate(instance: Instance, sourcePtr: number): number {
+export function doAddrValidate<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, sourcePtr: number): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const sourceData = readRegion(memory, sourcePtr, MAX_LENGTH_HUMAN_ADDRESS);
   if (sourceData.length === 0) {
@@ -63,26 +74,47 @@ export function doAddrValidate(instance: Instance, sourcePtr: number): number {
   const canonical = Buffer.from(sourceString, "base64url");
   const nomalized = canonical.toString("base64url");
   if (nomalized !== sourceString) {
-    return writeToContract(instance, Buffer.from("Address is not normalized", "utf8"));
+    return writeToContract(
+      instance,
+      Buffer.from("Address is not normalized", "utf8")
+    );
   }
   return 0;
 }
 
-export function doAddrCanonicalize(instance: Instance, sourcePtr: number, destinationPtr: number): number {
+export function doAddrCanonicalize<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(
+  instance: Instance<A, S, Q>,
+  sourcePtr: number,
+  destinationPtr: number
+): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const sourceData = readRegion(memory, sourcePtr, MAX_LENGTH_HUMAN_ADDRESS);
   if (sourceData.length === 0) {
     return writeToContract(instance, Buffer.from("Input is empty", "utf8"));
   }
-  const canonical = instance.backend.api.canonicalAddress(sourceData.toString("utf8"));
+  const canonical = instance.env.api.canonicalAddress(
+    sourceData.toString("utf8")
+  );
   writeRegion(memory, destinationPtr, canonical);
   return 0;
 }
 
-export function doAddrHumanize(instance: Instance, sourcePtr: number, destinationPtr: number): number {
+export function doAddrHumanize<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(
+  instance: Instance<A, S, Q>,
+  sourcePtr: number,
+  destinationPtr: number
+): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const canonical = readRegion(memory, sourcePtr, MAX_LENGTH_CANONICAL_ADDRESS);
-  const human = instance.backend.api.humanAddress(canonical);
+  const human = instance.env.api.humanAddress(canonical);
   writeRegion(memory, destinationPtr, Buffer.from(human, "utf8"));
   return 0;
 }
@@ -90,7 +122,16 @@ export function doAddrHumanize(instance: Instance, sourcePtr: number, destinatio
 const SECP256K1_VERIFY_CODE_VALID = 0;
 const SECP256K1_VERIFY_CODE_INVALID = 1;
 
-export function doSecp256k1Verify(instance: Instance, hashPtr: number, signaturePtr: number, pubkeyPtr: number): number {
+export function doSecp256k1Verify<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(
+  instance: Instance<A, S, Q>,
+  hashPtr: number,
+  signaturePtr: number,
+  pubkeyPtr: number
+): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const hash = readRegion(memory, hashPtr, MESSAGE_HASH_MAX_LEN);
   const signature = readRegion(memory, signaturePtr, ECDSA_SIGNATURE_LEN);
@@ -99,7 +140,16 @@ export function doSecp256k1Verify(instance: Instance, hashPtr: number, signature
   return result ? SECP256K1_VERIFY_CODE_VALID : SECP256K1_VERIFY_CODE_INVALID;
 }
 
-export function doSecp256k1RecoverPubkey(instance: Instance, hashPtr: number, signaturePtr: number, recoverParam: number): number {
+export function doSecp256k1RecoverPubkey<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(
+  instance: Instance<A, S, Q>,
+  hashPtr: number,
+  signaturePtr: number,
+  recoverParam: number
+): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const hash = readRegion(memory, hashPtr, MESSAGE_HASH_MAX_LEN);
   const sig = readRegion(memory, signaturePtr, ECDSA_SIGNATURE_LEN);
@@ -107,27 +157,64 @@ export function doSecp256k1RecoverPubkey(instance: Instance, hashPtr: number, si
   const s = BigInt(`0x${sig.subarray(32, 64).toString("hex")}`);
 
   const signature = new secp.Signature(r, s, recoverParam);
-  const pubkey = Buffer.from(signature.recoverPublicKey(hash).toHex(false), "hex");
+  const pubkey = Buffer.from(
+    signature.recoverPublicKey(hash).toHex(false),
+    "hex"
+  );
   return writeToContract(instance, pubkey);
 }
 
 const ED25519_VERIFY_CODE_VALID = 0;
 const ED25519_VERIFY_CODE_INVALID = 1;
 
-export function doEd25519Verify(instance: Instance, messagePtr: number, signaturePtr: number, pubkeyPtr: number): number {
+export function doEd25519Verify<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(
+  instance: Instance<A, S, Q>,
+  messagePtr: number,
+  signaturePtr: number,
+  pubkeyPtr: number
+): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const message = readRegion(memory, messagePtr, MAX_LENGTH_ED25519_MESSAGE);
-  const signature = readRegion(memory, signaturePtr, MAX_LENGTH_ED25519_SIGNATURE);
+  const signature = readRegion(
+    memory,
+    signaturePtr,
+    MAX_LENGTH_ED25519_SIGNATURE
+  );
   const pubkey = readRegion(memory, pubkeyPtr, EDDSA_PUBKEY_LEN);
   const result = ed.verify(signature, message, pubkey);
   return result ? ED25519_VERIFY_CODE_VALID : ED25519_VERIFY_CODE_INVALID;
 }
 
-export function doEd25519BatchVerify(instance: Instance, messagesPtr: number, signaturesPtr: number, publicKeysPtr: number): number {
+export function doEd25519BatchVerify<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(
+  instance: Instance<A, S, Q>,
+  messagesPtr: number,
+  signaturesPtr: number,
+  publicKeysPtr: number
+): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
-  const messagesBuf = readRegion(memory, messagesPtr, (MAX_LENGTH_ED25519_MESSAGE + 4) * MAX_COUNT_ED25519_BATCH);
-  const signaturesBuf = readRegion(memory, signaturesPtr, (MAX_LENGTH_ED25519_SIGNATURE + 4) * MAX_COUNT_ED25519_BATCH);
-  const publicKeysBuf = readRegion(memory, publicKeysPtr, (EDDSA_PUBKEY_LEN + 4) * MAX_COUNT_ED25519_BATCH);
+  const messagesBuf = readRegion(
+    memory,
+    messagesPtr,
+    (MAX_LENGTH_ED25519_MESSAGE + 4) * MAX_COUNT_ED25519_BATCH
+  );
+  const signaturesBuf = readRegion(
+    memory,
+    signaturesPtr,
+    (MAX_LENGTH_ED25519_SIGNATURE + 4) * MAX_COUNT_ED25519_BATCH
+  );
+  const publicKeysBuf = readRegion(
+    memory,
+    publicKeysPtr,
+    (EDDSA_PUBKEY_LEN + 4) * MAX_COUNT_ED25519_BATCH
+  );
 
   let messages = decodeSections(messagesBuf);
   const signatures = decodeSections(signaturesBuf);
@@ -138,6 +225,7 @@ export function doEd25519BatchVerify(instance: Instance, messagesPtr: number, si
   const publicKeysLen = publicKeys.length;
 
   if (messagesLen === signaturesLen && signaturesLen === publicKeysLen) {
+    //
   } else if (messagesLen === 1 && signaturesLen === publicKeysLen) {
     messages = new Array(signaturesLen).fill(messages[0]);
   } else if (publicKeysLen === 1 && messagesLen === signaturesLen) {
@@ -146,7 +234,10 @@ export function doEd25519BatchVerify(instance: Instance, messagesPtr: number, si
     return ED25519_VERIFY_CODE_INVALID;
   }
 
-  if (messages.length !== signaturesLen || messages.length !== publicKeys.length) {
+  if (
+    messages.length !== signaturesLen ||
+    messages.length !== publicKeys.length
+  ) {
     return ED25519_VERIFY_CODE_INVALID;
   }
 
@@ -158,22 +249,36 @@ export function doEd25519BatchVerify(instance: Instance, messagesPtr: number, si
   return ED25519_VERIFY_CODE_VALID;
 }
 
-export function doDebug(instance: Instance, messagePtr: number): void {
+export function doDebug<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, messagePtr: number): void {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const messageData = readRegion(memory, messagePtr, MAX_LENGTH_DEBUG);
   const msg = messageData.toString("utf8");
   console.log(msg);
 }
 
-export function doAbort(instance: Instance, messagePtr: number): void {
+export function doAbort<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, messagePtr: number): void {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
   const messageData = readRegion(memory, messagePtr, MAX_LENGTH_ABORT);
   const msg = messageData.toString("utf8");
   throw VmError.aborted(msg);
 }
 
-function writeToContract(instance: Instance, input: Buffer): number {
-  const targetPtr = (instance.inner.exports.allocate as CallableFunction)(input.length);
+function writeToContract<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, input: Buffer): number {
+  const targetPtr = (instance.inner.exports.allocate as CallableFunction)(
+    input.length
+  );
   if (targetPtr === 0) {
     throw CommunicationError.zeroAddress();
   }
@@ -182,18 +287,38 @@ function writeToContract(instance: Instance, input: Buffer): number {
   return targetPtr;
 }
 
-export function doQueryChain(instance: Instance, requestPtr: number): number {
+export function doQueryChain<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, requestPtr: number): number {
   const memory = instance.inner.exports.memory as WebAssembly.Memory;
-  const request = readRegion(memory, requestPtr, MAX_LENGTH_QUERY_CHAIN_REQUEST);
-  const result = instance.backend.querier.queryRaw(request);
+  const request = readRegion(
+    memory,
+    requestPtr,
+    MAX_LENGTH_QUERY_CHAIN_REQUEST
+  );
+  const result = instance.env.data.querier.queryRaw(request);
   return writeToContract(instance, result);
 }
 
-export function doDbScan(instance: Instance, startPtr: number, endPtr: number, order: number): number {
+export function doDbScan<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(
+  instance: Instance<A, S, Q>,
+  startPtr: number,
+  endPtr: number,
+  order: number
+): number {
   throw VmError.runtimeErr("Unsupported function");
 }
 
-export function doDbNext(instance: Instance, iteratorId: number): number {
+export function doDbNext<
+  A extends BackendApi,
+  S extends Storage,
+  Q extends Querier
+>(instance: Instance<A, S, Q>, iteratorId: number): number {
   throw VmError.runtimeErr("Unsupported function");
 }
-
