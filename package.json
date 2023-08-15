@@ -1,7 +1,7 @@
 {
-  "name": "@open-protocol/wasm",
+  "name": "@open-protocol/cosmwasm4js",
   "version": "0.0.1",
-  "description": "Open protocol wasm for all",
+  "description": "CosmWasm emulation for Node.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -13,7 +13,7 @@
   "type": "module",
   "keywords": [],
   "author": "code0xff <ian.jungyong.um@gmail.com>",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "jest": {
     "transform": {
       "^.+\\.ts$": "ts-jest"
